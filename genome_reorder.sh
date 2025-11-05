@@ -38,4 +38,24 @@ done < "$ORDER_FILE"
 # Step 6: Clean up temporary files (optional)
 rm renamed_scaffold.fasta reversed_part.fasta forward_part.fasta
 
-echo "✅ Done! Final FASTA: ${SPECIES_PREFIX}final.fasta"
+echo "✅ Done! Final FASTA: ${SPECIES_PREFIX}final.fasta" 
+
+# 0) (If you don’t already have it) create the reverse list you used
+printf "Clcutta4_chr03\nClcutta4_chr08\nClcutta4_chr09\nClcutta4_chr11\n" > reverse_list.txt
+
+# 1) Extract the remaining (forward) chromosomes
+seqkit grep -r -v -f reverse_list.txt Clcutta4_ordered.fasta > forward_part.fasta
+
+# 2) Merge back in correct chr01→chr11 order
+> Clcutta4_final.fasta
+while read c; do
+  if grep -qx "$c" reverse_list.txt; then
+    seqkit grep -r -p "$c" reversed_part.fasta >> Clcutta4_final.fasta
+  else
+    seqkit grep -r -p "$c" forward_part.fasta >> Clcutta4_final.fasta
+  fi
+done < order.txt
+
+# 3) Quick checks
+grep ">" Clcutta4_final.fasta
+seqkit stats Clcutta4_final.fasta
